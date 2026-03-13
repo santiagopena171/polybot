@@ -1,0 +1,52 @@
+name: Polymarket Bot
+
+on:
+  schedule:
+    # Cada 30 minutos (mínimo razonable para evitar abusar de la API de OpenAI)
+    # Ajusta el intervalo cambiando */30 por */15, */10, etc.
+    - cron: "*/30 * * * *"
+  # Permite correr manualmente desde la pestaña Actions de GitHub
+  workflow_dispatch:
+
+jobs:
+  run-bot:
+    name: Run one scan cycle
+    runs-on: ubuntu-latest
+    timeout-minutes: 25   # GitHub Actions tiene límite de 6h pero cortamos antes
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run one bot cycle
+        env:
+          # ── Wallet ──────────────────────────────────────────────────────────
+          POLYGON_PRIVATE_KEY: ${{ secrets.POLYGON_PRIVATE_KEY }}
+          POLYMARKET_API_KEY: ${{ secrets.POLYMARKET_API_KEY }}
+          POLYMARKET_API_SECRET: ${{ secrets.POLYMARKET_API_SECRET }}
+          POLYMARKET_API_PASSPHRASE: ${{ secrets.POLYMARKET_API_PASSPHRASE }}
+          # ── LLM ─────────────────────────────────────────────────────────────
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: gpt-4o
+          # ── Datos externos ──────────────────────────────────────────────────
+          NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
+          # ── Parámetros del bot ──────────────────────────────────────────────
+          MIN_EDGE: "0.07"
+          MAX_KELLY_FRACTION: "0.25"
+          MAX_TRADE_SIZE_USDC: "50"
+          MARKETS_TO_SCAN: "30"
+          DRY_RUN: "false"          # ← cambiar a "true" para seguir en modo prueba
+          LOG_LEVEL: "INFO"
+          LOG_FILE: "logs/bot.log"
+          # Modo single-cycle: el bot hace UN ciclo y termina (necesario en Actions)
+          SINGLE_CYCLE: "true"
+        run: python main.py
