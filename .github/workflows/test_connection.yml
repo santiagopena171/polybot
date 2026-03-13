@@ -1,0 +1,59 @@
+name: Test Connection
+
+on:
+  workflow_dispatch:   # solo manual
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+      - run: pip install -q requests loguru pydantic pydantic-settings python-dotenv
+      - name: Test Polymarket connection
+        env:
+          POLYGON_PRIVATE_KEY: ${{ secrets.POLYGON_PRIVATE_KEY }}
+          POLYMARKET_API_KEY: ${{ secrets.POLYMARKET_API_KEY }}
+          OPENAI_API_KEY: sk-test-not-needed
+          DRY_RUN: "true"
+          SINGLE_CYCLE: "true"
+        run: |
+          python - <<'EOF'
+          import os, requests, sys
+
+          print("=" * 50)
+          print("  POLYMARKET CONNECTION TEST")
+          print("=" * 50)
+
+          # 1. Verificar secrets cargados
+          pk = os.getenv("POLYGON_PRIVATE_KEY", "")
+          api_key = os.getenv("POLYMARKET_API_KEY", "")
+
+          print(f"\n[1] POLYGON_PRIVATE_KEY : {'✅ cargada' if len(pk) > 10 else '❌ FALTA'}")
+          print(f"[2] POLYMARKET_API_KEY  : {'✅ cargada' if len(api_key) > 10 else '❌ FALTA'}")
+
+          # 2. Ping a la Gamma API (pública, sin auth)
+          try:
+              r = requests.get("https://gamma-api.polymarket.com/markets?limit=1&active=true", timeout=10)
+              r.raise_for_status()
+              markets = r.json()
+              q = markets[0].get("question", "?") if markets else "?"
+              print(f"[3] Gamma API          : ✅ online — primer mercado: '{q[:60]}'")
+          except Exception as e:
+              print(f"[3] Gamma API          : ❌ error — {e}")
+              sys.exit(1)
+
+          # 3. Ping al CLOB (público)
+          try:
+              r2 = requests.get("https://clob.polymarket.com/", timeout=10)
+              print(f"[4] CLOB API           : ✅ online (status {r2.status_code})")
+          except Exception as e:
+              print(f"[4] CLOB API           : ❌ error — {e}")
+
+          print("\n✅ Conexión verificada. El bot puede acceder a Polymarket.")
+          print("=" * 50)
+          EOF
