@@ -174,10 +174,17 @@ def main():
     logger.info("=" * 60)
     logger.info("RESUMEN")
     logger.info("=" * 60)
+    failed = [r for r in results if r["status"] not in ("SUCCESS",)]
     for r in results:
         status_icon = "✓" if r["status"] == "SUCCESS" else "✗"
         logger.info("  {} {} — {}", status_icon, r["market"][:55], r["status"])
+        if r["status"] == "ERROR":
+            logger.error("    Error details: {}", r.get("error", "unknown"))
     logger.info("=" * 60)
+    if failed:
+        logger.error("{} operacion(es) fallaron — revisar logs arriba", len(failed))
+        sys.exit(1)
+    logger.info("Todas las operaciones completadas exitosamente")
 
 
 if __name__ == "__main__":

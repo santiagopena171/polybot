@@ -100,18 +100,28 @@ class PolymarketClient:
             key=private_key,
         )
 
-        # If API creds are provided use them, otherwise derive them
-        if settings.polymarket_api_key:
+        # Use stored creds only if all three fields are present; otherwise derive
+        _api_key = settings.polymarket_api_key
+        _api_secret = settings.polymarket_api_secret.get_secret_value()
+        _api_passphrase = settings.polymarket_api_passphrase.get_secret_value()
+        if _api_key and _api_secret and _api_passphrase:
             creds = ApiCreds(
-                api_key=settings.polymarket_api_key,
-                api_secret=settings.polymarket_api_secret.get_secret_value(),
-                api_passphrase=settings.polymarket_api_passphrase.get_secret_value(),
+                api_key=_api_key,
+                api_secret=_api_secret,
+                api_passphrase=_api_passphrase,
             )
             self._clob.set_api_creds(creds)
+            logger.info("Using stored API credentials (key: {}...)", _api_key[:8])
         else:
-            logger.info("No API creds provided — deriving from private key …")
+            logger.info("API secret/passphrase not set — deriving credentials from private key…")
             derived = self._clob.derive_api_key()
-            logger.info(f"Derived API key: {derived.api_key}")
+            creds = ApiCreds(
+                api_key=derived.api_key,
+                api_secret=derived.api_secret,
+                api_passphrase=derived.api_passphrase,
+            )
+            self._clob.set_api_creds(creds)
+            logger.info("Derived API key: {}...", derived.api_key[:8])
 
         logger.info("CLOB client connected. Address: {}", self._clob.get_address())
 
