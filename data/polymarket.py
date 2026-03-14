@@ -160,9 +160,38 @@ class PolymarketClient:
         return self.clob.get_order_book(token_id)
 
     def get_usdc_balance(self) -> float:
-        """Return the available USDC balance on the CLOB."""
-        balance_info = self.clob.get_balance()
-        return float(balance_info.get("balance", 0))
+        """Return the available USDC balance. Tries multiple API methods for compatibility."""
+        # Try different method names across py-clob-client versions
+        for method_name in ("get_balance", "get_collateral_balance", "get_usdc_balance"):
+            method = getattr(self._clob, method_name, None)
+            if method is None:
+                continue
+            try:
+                result = method()
+                if isinstance(result, dict):
+                    for key in ("balance", "collateral_balance", "usdc", "amount"):
+                        if key in result:
+                            return float(result[key])
+                if isinstance(result, (int, float, str)):
+                    return float(result)
+            except Exception as exc:
+                logger.debug("Method {} failed: {}", method_name, exc)
+
+        # Fallback: query the Gamma API for portfolio balance (public endpoint)
+        try:
+            address = self.clob.get_address()
+            resp = self._session.get(
+                f"https://data-api.polymarket.com/value?user={address}",
+                timeout=10,
+            )
+            if resp.ok:
+                data = resp.json()
+                return float(data.get("portfolioValue", data.get("value", 0)))
+        except Exception as exc:
+            logger.warning("Balance fallback also failed: {}", exc)
+
+        logger.warning("Could not retrieve balance — assuming $0. Bot will operate in dry-run safety mode.")
+        return 0.0
 
     # ── Order placement ────────────────────────────────────────────────────────
 

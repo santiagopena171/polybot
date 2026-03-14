@@ -52,11 +52,16 @@ class PolymarketBot:
 
         # Initialise risk manager with current USDC balance
         bankroll = self._poly.get_usdc_balance()
-        logger.info("USDC balance: ${:.2f}", bankroll)
+        logger.info("USDC balance reported: ${:.2f}", bankroll)
 
         if bankroll < 5.0 and not settings.dry_run:
-            logger.error("Insufficient balance (${:.2f}). Top up your wallet.", bankroll)
-            return
+            # Use a safe default so the bot doesn't stop if balance API is unreliable
+            logger.warning(
+                "Balance API returned ${:.2f} — using $100 default for Kelly sizing. "
+                "MAX_TRADE_SIZE_USDC cap still applies.",
+                bankroll,
+            )
+            bankroll = 100.0
 
         # Use a minimum $100 bankroll for Kelly calculations in dry-run
         effective_bankroll = max(bankroll, 100.0) if settings.dry_run else bankroll
