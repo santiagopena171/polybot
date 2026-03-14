@@ -1,0 +1,55 @@
+{
+  "starting_bankroll": 500.0,
+  "current_bankroll": 500.0,
+  "cycles_run": 1,
+  "trades": [
+    {
+      "timestamp": "2026-03-14T01:55:24.406185+00:00",
+      "question": "Will the Iranian regime fall by April 30?",
+      "condition_id": "0xe443dab97ad8b7f58558cc7a6a3932d156031e962a451e0461e9a4578d78fe84",
+      "direction": "BUY_NO",
+      "market_price": 0.135,
+      "estimated_prob": 0.03,
+      "edge": -0.105,
+      "usdc_amount": 50.0,
+      "confidence": "medium",
+      "reasoning": "Análisis de evidencia externa sugiere P(YES)=3.0% vs precio de mercado 13.5%."
+    },
+    {
+      "timestamp": "2026-03-14T01:55:24.406361+00:00",
+      "question": "US forces enter Iran by March 31?",
+      "condition_id": "0x306d10d4a4d51b41910dbc779ca00908bd917c131541c5c42bbbc736258d2d56",
+      "direction": "BUY_NO",
+      "market_price": 0.405,
+      "estimated_prob": 0.198,
+      "edge": -0.207,
+      "usdc_amount": 50.0,
+      "confidence": "high",
+      "reasoning": "Análisis de evidencia externa sugiere P(YES)=19.8% vs precio de mercado 40.5%."
+    },
+    {
+      "timestamp": "2026-03-14T01:55:24.406510+00:00",
+      "question": "US x Iran ceasefire by March 31?",
+      "condition_id": "0x3c6bcb7da14ea576e5af25547dbd96f2bb24ac34e748e76aecff2ee9195dd1ac",
+      "direction": "BUY_YES",
+      "market_price": 0.165,
+      "estimated_prob": 0.342,
+      "edge": 0.177,
+      "usdc_amount": 26.5,
+      "confidence": "high",
+      "reasoning": "Análisis de evidencia externa sugiere P(YES)=34.2% vs precio de mercado 16.5%."
+    },
+    {
+      "timestamp": "2026-03-14T01:55:24.406685+00:00",
+      "question": "US forces enter Iran by December 31?",
+      "condition_id": "0xe4b9a52d2bb336ff9d84799b70e72e8e5f4507df881af60f3f4daeb9f541a80e",
+      "direction": "BUY_YES",
+      "market_price": 0.675,
+      "estimated_prob": 0.869,
+      "edge": 0.194,
+      "usdc_amount": 50.0,
+      "confidence": "high",
+      "reasoning": "Análisis de evidencia externa sugiere P(YES)=86.9% vs precio de mercado 67.5%."
+    }
+  ]
+}

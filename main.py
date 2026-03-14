@@ -93,12 +93,19 @@ class PolymarketBot:
         logger.info("Starting scan cycle …")
 
         try:
-            markets = self._poly.get_markets(limit=settings.markets_to_scan)
+            # Buscar en bloques para encontrar mercados con precios intermedios (10-90%)
+            all_markets = self._poly.get_markets(limit=settings.markets_to_scan)
+            # Priorizar mercados con incertidumbre real
+            tradeable = [m for m in all_markets
+                         if m.yes_price is not None and 0.10 <= m.yes_price <= 0.90]
+            other = [m for m in all_markets
+                     if m.yes_price is not None and (m.yes_price < 0.10 or m.yes_price > 0.90)]
+            markets = tradeable + other[:5]
+            logger.info("Fetched {} markets ({} with real uncertainty, {} extreme)",
+                        len(markets), len(tradeable), len(other))
         except Exception as exc:
             logger.error("Failed to fetch markets: {}", exc)
             return
-
-        logger.info("Fetched {} markets to analyse.", len(markets))
         opportunities_found = 0
 
         for market in markets:

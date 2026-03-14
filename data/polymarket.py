@@ -245,25 +245,45 @@ class PolymarketClient:
 
     @staticmethod
     def _parse_market(raw: dict) -> Market:
-        tokens = raw.get("tokens", [])
         yes_price = no_price = None
-        for t in tokens:
-            outcome = str(t.get("outcome", "")).upper()
-            price = t.get("price")
-            if price is not None:
-                price = float(price)
-            if outcome == "YES":
-                yes_price = price
-            elif outcome == "NO":
-                no_price = price
+
+        # Format 1: tokens list (CLOB endpoint)
+        tokens = raw.get("tokens", [])
+        if tokens:
+            for t in tokens:
+                outcome = str(t.get("outcome", "")).upper()
+                price = t.get("price")
+                if price is not None:
+                    price = float(price)
+                if outcome == "YES":
+                    yes_price = price
+                elif outcome == "NO":
+                    no_price = price
+
+        # Format 2: outcomes + outcomePrices strings (Gamma REST endpoint)
+        if yes_price is None:
+            import json as _json
+            outcomes_raw = raw.get("outcomes", "[]")
+            prices_raw = raw.get("outcomePrices", "[]")
+            try:
+                outcomes = _json.loads(outcomes_raw) if isinstance(outcomes_raw, str) else outcomes_raw
+                prices = _json.loads(prices_raw) if isinstance(prices_raw, str) else prices_raw
+                for outcome, price in zip(outcomes, prices):
+                    outcome_upper = str(outcome).upper()
+                    if outcome_upper in ("YES", "Y"):
+                        yes_price = float(price)
+                    elif outcome_upper in ("NO", "N"):
+                        no_price = float(price)
+            except Exception:
+                pass
 
         return Market(
-            condition_id=raw["conditionId"],
+            condition_id=raw.get("conditionId", raw.get("id", "")),
             question=raw.get("question", ""),
             description=raw.get("description", ""),
             category=raw.get("category", ""),
             end_date=raw.get("endDate", ""),
-            active=raw.get("active", False),
+            active=raw.get("active", True),
             yes_price=yes_price,
             no_price=no_price,
             volume_24h=float(raw.get("volume24hr", 0) or 0),
