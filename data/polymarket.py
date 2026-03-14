@@ -228,6 +228,7 @@ class PolymarketClient:
         args = MarketOrderArgs(
             token_id=token_id,
             amount=amount_usdc,
+            side=side.upper(),
         )
         signed = self.clob.create_market_order(args)
         result = self.clob.post_order(signed, OrderType.FOK)
