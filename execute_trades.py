@@ -21,41 +21,34 @@ TARGETS = [
         "slug": "will-the-iranian-regime-fall-by-march-31",
         "question": "Will the Iranian regime fall by March 31?",
         "bet": "NO",
-        "market_price_yes": 0.0365,
+        "market_price_yes": 0.038,
         "my_estimate_yes": 0.015,
+        "max_entry_price_yes": 0.12,  # no entrar si YES sube mucho
         "amount_usdc": 12.0,
-        "reason": "17 días insuficientes para colapso de régimen; presión de mercado sobreestimada",
+        "reason": "17 días insuficientes para colapso de régimen; mercado sobreestima riesgo geopolítico",
     },
-    {
-        "slug": "us-forces-enter-iran-by",
-        "question": "US forces enter Iran by March 31?",
-        "bet": "NO",
-        "market_price_yes": 0.022,
-        "my_estimate_yes": 0.008,
-        "amount_usdc": 10.0,
-        "reason": "Sin despliegue militar visible, sanciones en curso, 17 días insuficientes",
-    },
+    # Nota: 'US forces enter Iran by March 31' eliminado — precio YES subió a 43% (serie condicional)
 ]
 
 
-def get_market_by_slug(slug_fragment: str) -> dict | None:
-    """Busca mercado en Gamma API por fragmento de slug."""
+def get_market_by_slug(slug: str) -> dict | None:
+    """Busca mercado en Gamma API por slug exacto."""
     try:
         resp = requests.get(
             "https://gamma-api.polymarket.com/markets",
-            params={"active": "true", "closed": "false", "limit": 100},
+            params={"slug": slug},
             timeout=15,
         )
         if not resp.ok:
+            logger.error("Gamma API error {}: {}", resp.status_code, resp.text[:200])
             return None
-        markets = resp.json()
+        data = resp.json()
+        markets = data if isinstance(data, list) else [data]
         for m in markets:
-            if slug_fragment.lower() in (m.get("slug") or "").lower():
+            if (m.get("slug") or "").lower() == slug.lower():
                 return m
-        # Second pass: search in question text
-        for m in markets:
-            if slug_fragment.replace("-", " ").lower() in (m.get("question") or "").lower():
-                return m
+        if markets:
+            return markets[0]  # única coincidencia directa
     except Exception as exc:
         logger.error("Market search failed: {}", exc)
     return None
@@ -108,11 +101,8 @@ def main():
         logger.info("  Monto:              ${:.2f} USDC", target["amount_usdc"])
         logger.info("  Razón: {}", target["reason"])
 
-        # 1. Buscar mercado
+        # 1. Buscar mercado por slug exacto
         mkt_data = get_market_by_slug(target["slug"])
-        if not mkt_data:
-            # Wider search by question text
-            mkt_data = get_market_by_slug(target["slug"].split("-by")[0])
         if not mkt_data:
             logger.error("  ✗ Mercado no encontrado: {}", target["slug"])
             results.append({"market": target["question"], "status": "NOT_FOUND"})
@@ -133,10 +123,18 @@ def main():
             current_yes = target["market_price_yes"]
         logger.info("  Precio YES actual: {:.1%}", current_yes)
 
-        # Sanity check: si el mercado se movió mucho, no operar
+        # Sanity check: mercado ya resuelto o precio movido demasiado
         if current_yes < 0.005:
             logger.warning("  ✗ Mercado casi resuelto (YES < 0.5%), saltando")
             results.append({"market": target["question"], "status": "NEAR_RESOLVED"})
+            continue
+        max_entry = target.get("max_entry_price_yes", 0.30)
+        if current_yes > max_entry:
+            logger.warning(
+                "  ✗ Precio YES {:.1%} supera máximo aceptable {:.1%}, saltando",
+                current_yes, max_entry,
+            )
+            results.append({"market": target["question"], "status": "PRICE_MOVED"})
             continue
 
         # 2. Obtener token ID del NO
