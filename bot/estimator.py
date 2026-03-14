@@ -77,8 +77,27 @@ class ProbabilityEstimator:
     def __init__(self) -> None:
         if not _OPENAI_AVAILABLE:
             raise RuntimeError("openai package not installed. Run: pip install openai")
-        self._client = OpenAI(api_key=settings.openai_api_key.get_secret_value())
-        self._model = settings.openai_model
+
+        groq_key = settings.groq_api_key.get_secret_value()
+        openai_key = settings.openai_api_key.get_secret_value()
+
+        if groq_key:
+            # Groq: free tier, OpenAI-compatible API
+            self._client = OpenAI(
+                api_key=groq_key,
+                base_url="https://api.groq.com/openai/v1",
+            )
+            self._model = settings.groq_model
+            logger.info("LLM: using Groq ({}) — free tier", self._model)
+        elif openai_key:
+            self._client = OpenAI(api_key=openai_key)
+            self._model = settings.openai_model
+            logger.info("LLM: using OpenAI ({})", self._model)
+        else:
+            raise RuntimeError(
+                "No LLM API key configured. Set GROQ_API_KEY (free) or OPENAI_API_KEY."
+            )
+
         self._quota_exceeded = False
 
     def estimate(self, evidence: ExternalEvidence) -> Optional[ProbabilityEstimate]:

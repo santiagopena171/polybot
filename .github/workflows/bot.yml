@@ -35,6 +35,8 @@ jobs:
           POLYMARKET_API_SECRET: ${{ secrets.POLYMARKET_API_SECRET }}
           POLYMARKET_API_PASSPHRASE: ${{ secrets.POLYMARKET_API_PASSPHRASE }}
           # ── LLM ─────────────────────────────────────────────────────────────
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_MODEL: llama-3.3-70b-versatile
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_MODEL: gpt-4o
           # ── Datos externos ──────────────────────────────────────────────────
