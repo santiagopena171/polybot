@@ -186,7 +186,11 @@ class PolymarketClient:
             )
             if resp.ok:
                 data = resp.json()
-                return float(data.get("portfolioValue", data.get("value", 0)))
+                # API may return a list — take the first element
+                if isinstance(data, list):
+                    data = data[0] if data else {}
+                if isinstance(data, dict):
+                    return float(data.get("portfolioValue", data.get("value", 0)))
         except Exception as exc:
             logger.warning("Balance fallback also failed: {}", exc)
 

@@ -79,11 +79,16 @@ class ProbabilityEstimator:
             raise RuntimeError("openai package not installed. Run: pip install openai")
         self._client = OpenAI(api_key=settings.openai_api_key.get_secret_value())
         self._model = settings.openai_model
+        self._quota_exceeded = False
 
     def estimate(self, evidence: ExternalEvidence) -> Optional[ProbabilityEstimate]:
         """
         Returns a ProbabilityEstimate, or None if the LLM call fails.
         """
+        # If quota was already exhausted this cycle, skip immediately
+        if self._quota_exceeded:
+            return None
+
         user_message = (
             f"{evidence.to_context_string()}\n\n"
             "Based on the evidence above, what is the probability that this "
@@ -104,7 +109,16 @@ class ProbabilityEstimator:
             raw = response.choices[0].message.content or ""
             return self._parse(raw, evidence.question)
         except Exception as exc:
-            logger.error("LLM call failed for '{}': {}", evidence.question[:60], exc)
+            err_str = str(exc)
+            if "insufficient_quota" in err_str or "429" in err_str:
+                self._quota_exceeded = True
+                logger.error(
+                    "OpenAI quota exceeded — no credits in account. "
+                    "Add credits at platform.openai.com/billing to enable AI analysis. "
+                    "Skipping remaining markets this cycle."
+                )
+            else:
+                logger.error("LLM call failed for '{}': {}", evidence.question[:60], exc)
             return None
 
     # ── Aggregated estimate (combines LLM + peer markets) ─────────────────────
