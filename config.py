@@ -34,6 +34,8 @@ class Settings(BaseSettings):
     markets_to_scan: int = Field(default=30)
     scan_interval_seconds: int = Field(default=300)
     dry_run: bool = Field(default=True)
+    # true = un solo ciclo y termina (GitHub Actions), false = loop continuo (VPS)
+    single_cycle: bool = Field(default=False)
 
     # ── Logging ────────────────────────────────────
     log_level: str = Field(default="INFO")
